@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37012.4 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SweetBakeryQuest", "SweetBakeryQuest.csproj", "{B1FA66C3-8FD6-49CF-9F83-1737E0B8767C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B1FA66C3-8FD6-49CF-9F83-1737E0B8767C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1FA66C3-8FD6-49CF-9F83-1737E0B8767C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1FA66C3-8FD6-49CF-9F83-1737E0B8767C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1FA66C3-8FD6-49CF-9F83-1737E0B8767C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {47CBBAC1-BDD2-4691-8795-68C671C12805}
+	EndGlobalSection
+EndGlobal

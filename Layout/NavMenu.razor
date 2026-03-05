@@ -1,0 +1,41 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">SweetBakeryQuest</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <NavLink class="nav-link-bottom" href="" Match="NavLinkMatch.All">
+        <i class="bi bi-house-door"></i>
+        <span>Дім</span>
+    </NavLink>
+
+    <NavLink class="nav-link-bottom" href="shop">
+        <i class="bi bi-shop"></i>
+        <span>Магазин</span>
+    </NavLink>
+
+    <NavLink class="nav-link-bottom" href="inventory">
+        <i class="bi bi-backpack"></i>
+        <span>Рюкзак</span>
+    </NavLink>
+
+    <NavLink class="nav-link-bottom" href="quests">
+        <i class="bi bi-star"></i>
+        <span>Квести</span>
+    </NavLink>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

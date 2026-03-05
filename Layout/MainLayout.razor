@@ -1,0 +1,45 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page">
+    @* --- НАШ НОВИЙ HEADER --- *@
+    <header class="top-bar">
+        <div class="user-info">
+            <span class="avatar">👩‍🍳</span>
+            <span class="username">Моя Кондитерська</span>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item gold">
+                <span>💰 1500</span>
+            </div>
+            <div class="stat-item xp">
+                <span>⭐ Рівень 1</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+
+    <NavMenu />
+</div>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+<div class="page">
+    <main class="main-content">
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+
+    <NavMenu /> @* Наша нова нижня панель *@
+</div>
+</div>
+

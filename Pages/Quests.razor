@@ -1,0 +1,65 @@
+﻿@page "/quests"
+
+<style>
+    .quest-card {
+        background: #fff9c4; /* Колір старого паперу/пергаменту */
+        border-left: 8px solid #fbc02d;
+        border-radius: 10px;
+        transition: 0.3s;
+    }
+
+        .quest-card:hover {
+            transform: translateX(10px);
+            background: #fffde7;
+        }
+
+    .reward-badge {
+        background: #ffd54f;
+        color: #7f6d00;
+        font-weight: bold;
+        border-radius: 15px;
+        padding: 5px 15px;
+    }
+</style>
+
+<div class="container mt-4">
+    <h3 class="text-center mb-4" style="color: #4e342e; font-weight: bold;">📜 Книга Рецептів (Квести)</h3>
+
+    <div class="row">
+        @foreach (var quest in activeQuests)
+        {
+            <div class="col-12 mb-3">
+                <div class="card quest-card shadow-sm">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1" style="color: #5d4037;">@quest.Title</h5>
+                            <span class="badge @(quest.Status == "Доступно" ? "bg-info" : "bg-warning text-dark")">
+                                @quest.Status
+                            </span>
+                        </div>
+                        <div class="text-end">
+                            <div class="reward-badge mb-2">💰 @quest.Reward XP</div>
+                            <button class="btn btn-sm btn-outline-dark">Деталі</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<QuestDisplay> activeQuests = new()
+    {
+        new QuestDisplay { Title = "Випічка: Шоколадний кекс", Reward = 150, Status = "В процесі" },
+        new QuestDisplay { Title = "Замовлення: 5 круасанів", Reward = 300, Status = "Доступно" },
+        new QuestDisplay { Title = "Майстер-клас по крему", Reward = 500, Status = "Заблоковано" }
+    };
+
+    public class QuestDisplay
+    {
+        public string Title { get; set; } = "";
+        public int Reward { get; set; }
+        public string Status { get; set; } = "";
+    }
+}

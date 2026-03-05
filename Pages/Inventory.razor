@@ -1,0 +1,75 @@
+﻿@page "/inventory"
+
+<style>
+    .inventory-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
+        gap: 20px;
+        padding: 10px;
+    }
+
+    .inventory-item {
+        background: #fff;
+        border: 2px solid #f8bbd0;
+        height: 150px; 
+        border-radius: 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+
+    .item-count {
+        position: absolute;
+        bottom: 3px;
+        right: 5px;
+        background: #ad1457;
+        color: white;
+        border-radius: 5px;
+        padding: 2px 8px;
+        font-size: 2rem !important;
+        font-weight: bold;
+    }
+
+    .inventory-title {
+        color: #4a148c;
+        font-weight: bold;
+        text-shadow: 1px 1px #f8bbd0;
+    }
+</style>
+
+<div class="container mt-4">
+    <h3 class="text-center inventory-title mb-4">🎒 Мій Склад</h3>
+
+    @if (items.Count == 0)
+    {
+        <div class="text-center mt-5">
+            <i class="bi bi-box-seam" style="font-size: 3rem; color: #f8bbd0;"></i>
+            <p class="text-muted mt-2">Склад порожній... Потрібно замовити інгредієнти!</p>
+        </div>
+    }
+    else
+    {
+        <div class="inventory-grid">
+            @foreach (var item in items)
+            {
+                <div class="inventory-item">
+                    <span class="item-icon">📦</span>
+                    <small class="text-center" style="font-size: 1rem; color: #4a148c; font-weight: bold;">@item.Key</small>
+                    <span class="item-count" style="font-size: 1rem; padding: 4px 12px;">@item.Value</span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private Dictionary<string, int> items = new()
+    {
+        { "Борошно", 2 },
+        { "Цукор", 5 },
+        { "Шоколад", 1 }
+    };
+}

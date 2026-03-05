@@ -1,0 +1,150 @@
+﻿@page "/shop"
+@* Примітка: переконайся, що назва простору імен співпадає з твоєю *@
+
+@using System.Timers @* Додаємо можливість працювати з таймером *@
+
+<style>
+    .ingredient-card {
+        border-radius: 15px;
+        border: none;
+        background: #fff0f5; /* Ніжно-рожевий під тон випічки */
+        transition: transform 0.2s;
+        border-bottom: 4px solid #ff69b4;
+    }
+
+        .ingredient-card:hover {
+            transform: scale(1.03);
+        }
+
+    .price-tag {
+        color: #d81b60;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    /* Для Chrome, Safari, Edge, Opera — прибираємо внутрішні стрілочки */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    /* Для Firefox — робимо поле схожим на звичайний текст */
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    /* Додатково: забираємо синю рамку при натисканні, щоб не псувала вигляд */
+    input:focus {
+        outline: none;
+        box-shadow: none !important;
+    }
+</style>
+
+<div class="container mt-4">
+    <h3 class="text-center mb-4" style="color: #ad1457; font-weight: bold;">🧁 Магазин інгредієнтів</h3>
+
+    <div class="row">
+        @foreach (var item in availableIngredients)
+        {
+            <div class="col-6 col-md-4 mb-4">
+                <div class="card ingredient-card shadow-sm h-100">
+                    <div class="card-body text-center d-flex flex-column justify-content-between">
+                        <h5 class="card-title" style="color: #4a148c;">@item.Name</h5>
+                        <div class="price-tag my-2">💰 @item.Price</div>
+
+                        <div class="d-flex justify-content-center align-items-center mb-3">
+                            @* Кнопка Мінус - звичайний текст *@
+                            <button class="btn btn-outline-secondary"
+                                    style="width: 40px; font-weight: bold; border-radius: 5px 0 0 5px;"
+                                    @onclick="() => { if (item.QuantityToBuy > 1) item.QuantityToBuy--; }">
+                                −
+                            </button>
+
+                            @* Поле введення *@
+                            <input type="number" class="form-control text-center"
+                                   style="width: 60px; border-radius: 0; border-left: none; border-right: none;"
+                                   @bind="item.QuantityToBuy" min="1">
+
+                            @* Кнопка Плюс - звичайний текст *@
+                            <button class="btn btn-outline-secondary"
+                                    style="width: 40px; font-weight: bold; border-radius: 0 5px 5px 0;"
+                                    @onclick="() => item.QuantityToBuy++">
+                                +
+                            </button>
+                        </div>
+
+                        <button class="btn btn-lg w-100"
+                                style="background-color: #ff4081; color: white; border-radius: 20px;"
+                                @onclick="() => BuyItem(item)">
+                            Купити
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(lastMessage))
+    {
+        <div class="fixed-top mt-5 pt-3 d-flex justify-content-center" style="pointer-events: none;">
+            <div class="alert alert-success shadow-lg" style="pointer-events: all; border-radius: 30px;">
+                @lastMessage
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string lastMessage = "";
+    private int secondsRemaining = 0;
+    private Timer? deliveryTimer;
+
+    private List<Ingredient> availableIngredients = new()
+    {
+        new Ingredient { Name = "Борошно", Price = 10 },
+        new Ingredient { Name = "Цукор", Price = 15 },
+        new Ingredient { Name = "Шоколад", Price = 50 }
+    };
+
+    private void BuyItem(Ingredient item)
+    {
+        if (secondsRemaining > 0) return; // Не даємо купити нове, поки йде доставка
+
+        secondsRemaining = 10; // Ставимо 10 секунд на доставку
+        lastMessage = $"Замовлення на {item.Name} прийнято! Доставка через: {secondsRemaining} сек.";
+
+        // Налаштовуємо таймер
+        deliveryTimer = new Timer(1000); // Спрацьовує кожну 1 секунду
+        deliveryTimer.Elapsed += OnTimerElapsed;
+        deliveryTimer.AutoReset = true;
+        deliveryTimer.Enabled = true;
+    }
+
+    private async void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        if (secondsRemaining > 0)
+        {
+            secondsRemaining--;
+            lastMessage = $"Доставка... Залишилось: {secondsRemaining} сек.";
+        }
+        else
+        {
+            deliveryTimer?.Stop();
+            lastMessage = "✅ Товар доставлено!";
+            await InvokeAsync(StateHasChanged);
+
+            // Магія зникнення: чекаємо 3 секунди і очищуємо текст
+            await Task.Delay(3000);
+            lastMessage = "";
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public class Ingredient
+    {
+        public string Name { get; set; } = "";
+        public int Price { get; set; }
+        public int QuantityToBuy { get; set; } = 1; // Додали це
+    }
+}
