@@ -1,64 +1,39 @@
 ﻿@page "/inventory"
-
-<style>
-    .inventory-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
-        gap: 20px;
-        padding: 10px;
-    }
-
-    .inventory-item {
-        background: #fff;
-        border: 2px solid #f8bbd0;
-        height: 150px; 
-        border-radius: 18px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-
-    .item-count {
-        position: absolute;
-        bottom: 3px;
-        right: 5px;
-        background: #ad1457;
-        color: white;
-        border-radius: 5px;
-        padding: 2px 8px;
-        font-size: 2rem !important;
-        font-weight: bold;
-    }
-
-    .inventory-title {
-        color: #4a148c;
-        font-weight: bold;
-        text-shadow: 1px 1px #f8bbd0;
-    }
-</style>
+@implements IDisposable
+@using SweetBakeryQuest.Models
+@using SweetBakeryQuest.Services
+@inject GameState State
 
 <div class="container mt-4">
-    <h3 class="text-center inventory-title mb-4">🎒 Мій Склад</h3>
+    <h3 class="text-center mb-4" style="color: #4e342e; font-weight: bold;">📦 Ваша Комора</h3>
 
-    @if (items.Count == 0)
+    @if (State.Inventory.Count == 0 || State.Inventory.All(x => x.Value == 0))
     {
-        <div class="text-center mt-5">
-            <i class="bi bi-box-seam" style="font-size: 3rem; color: #f8bbd0;"></i>
-            <p class="text-muted mt-2">Склад порожній... Потрібно замовити інгредієнти!</p>
+        <div class="alert alert-warning text-center shadow-sm" style="border-radius: 15px; background-color: #fff9c4; border-color: #fbc02d;">
+            <h5 class="mb-0 text-dark">У коморі гуляє вітер 🌬️. Час завітати до Магазину!</h5>
         </div>
     }
     else
     {
-        <div class="inventory-grid">
-            @foreach (var item in items)
+        <div class="row">
+            @foreach (var item in State.Inventory.Where(x => x.Value > 0))
             {
-                <div class="inventory-item">
-                    <span class="item-icon">📦</span>
-                    <small class="text-center" style="font-size: 1rem; color: #4a148c; font-weight: bold;">@item.Key</small>
-                    <span class="item-count" style="font-size: 1rem; padding: 4px 12px;">@item.Value</span>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card p-3 shadow-sm text-center" style="border-radius: 15px; border: 2px solid #8d6e63; background-color: #fdf8e4; transition: 0.3s;">
+
+                        <div class="display-3 mb-2">
+                            @GetIcon(item.Key)
+                        </div>
+
+                        <h5 style="color: #5d4037; font-weight: bold;">
+                            @TranslateProduct(item.Key)
+                        </h5>
+
+                        <div class="fs-4 mb-0 fw-bold text-success">
+                            @item.Value шт.
+                        </div>
+
+                    </div>
                 </div>
             }
         </div>
@@ -66,10 +41,28 @@
 </div>
 
 @code {
-    private Dictionary<string, int> items = new()
+    // Підписуємося на оновлення, щоб інвентар оновлювався в реальному часі
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    // Спеціальний помічник для красивих іконок
+    private string GetIcon(ProductType type) => type switch
     {
-        { "Борошно", 2 },
-        { "Цукор", 5 },
-        { "Шоколад", 1 }
+        ProductType.Flour => "🌾",
+        // Коли додаси нові інгредієнти, розкоментуй ці рядки:
+        // ProductType.Sugar => "🧊",
+        // ProductType.Cocoa => "🍫",
+        // ProductType.Eggs => "🥚",
+        _ => "📦"
+    };
+
+    // Помічник для перекладу назв з англійської (enum) на українську
+    private string TranslateProduct(ProductType type) => type switch
+    {
+        ProductType.Flour => "Борошно",
+        // ProductType.Sugar => "Цукор",
+        // ProductType.Cocoa => "Какао",
+        // ProductType.Eggs => "Яйця",
+        _ => type.ToString()
     };
 }

@@ -1,8 +1,12 @@
 ﻿@page "/quests"
+@implements IDisposable
+@using SweetBakeryQuest.Models
+@using SweetBakeryQuest.Services
+@inject GameState State
 
 <style>
     .quest-card {
-        background: #fff9c4; /* Колір старого паперу/пергаменту */
+        background: #fff9c4;
         border-left: 8px solid #fbc02d;
         border-radius: 10px;
         transition: 0.3s;
@@ -19,47 +23,65 @@
         font-weight: bold;
         border-radius: 15px;
         padding: 5px 15px;
+        display: inline-block;
     }
 </style>
 
 <div class="container mt-4">
     <h3 class="text-center mb-4" style="color: #4e342e; font-weight: bold;">📜 Книга Рецептів (Квести)</h3>
+    <p class="text-center">Репутація: 🌟 @State.Reputation</p>
 
     <div class="row">
-        @foreach (var quest in activeQuests)
+        @foreach (var quest in State.AvailableQuests)
         {
+            bool canComplete = State.CanCompleteQuest(quest);
+
             <div class="col-12 mb-3">
                 <div class="card quest-card shadow-sm">
                     <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="mb-1" style="color: #5d4037;">@quest.Title</h5>
-                            <span class="badge @(quest.Status == "Доступно" ? "bg-info" : "bg-warning text-dark")">
-                                @quest.Status
+                            <span class="badge @(canComplete ? "bg-success" : "bg-warning text-dark") mb-2">
+                                @(canComplete ? "Можна готувати!" : "Бракує інгредієнтів")
                             </span>
+
+                            <div style="font-size: 0.9em;">
+                                <strong>Потрібно:</strong>
+                                @foreach (var req in quest.RequiredIngredients)
+                                {
+                                    int currentAmount = State.Inventory.ContainsKey(req.Key) ? State.Inventory[req.Key] : 0;
+                                    bool hasEnough = currentAmount >= req.Value;
+                                    <span class="me-2" style="color: @(hasEnough ? "green" : "red")">
+                                        @req.Key (@currentAmount/@req.Value)
+                                    </span>
+                                }
+                            </div>
                         </div>
+
                         <div class="text-end">
-                            <div class="reward-badge mb-2">💰 @quest.Reward XP</div>
-                            <button class="btn btn-sm btn-outline-dark">Деталі</button>
+                            <div class="reward-badge mb-2">💰 @quest.RewardGold | 🌟 @quest.RewardReputation</div>
+                            <br />
+                            <button class="btn btn-sm @(canComplete ? "btn-success" : "btn-outline-dark")"
+                                    disabled="@(!canComplete)"
+                                    @onclick="() => State.CompleteQuest(quest)">
+                                Виконати
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
+        }
+
+        @if (!State.AvailableQuests.Any())
+        {
+            <div class="text-center mt-4">
+                <h5 style="color: #5d4037;">Усі замовлення виконані! Ви молодець 🍰</h5>
             </div>
         }
     </div>
 </div>
 
 @code {
-    private List<QuestDisplay> activeQuests = new()
-    {
-        new QuestDisplay { Title = "Випічка: Шоколадний кекс", Reward = 150, Status = "В процесі" },
-        new QuestDisplay { Title = "Замовлення: 5 круасанів", Reward = 300, Status = "Доступно" },
-        new QuestDisplay { Title = "Майстер-клас по крему", Reward = 500, Status = "Заблоковано" }
-    };
-
-    public class QuestDisplay
-    {
-        public string Title { get; set; } = "";
-        public int Reward { get; set; }
-        public string Status { get; set; } = "";
-    }
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
 }

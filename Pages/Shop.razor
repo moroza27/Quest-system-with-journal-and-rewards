@@ -1,150 +1,147 @@
 ﻿@page "/shop"
-@* Примітка: переконайся, що назва простору імен співпадає з твоєю *@
-
-@using System.Timers @* Додаємо можливість працювати з таймером *@
+@implements IDisposable
+@using SweetBakeryQuest.Models
+@using SweetBakeryQuest.Services
+@inject GameState State
 
 <style>
-    .ingredient-card {
+    /* Стилі для спливаючого вікна доставки (на весь екран) */
+    .delivery-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(3px);
+    }
+
+    .delivery-modal {
+        background: #fff;
+        padding: 30px;
         border-radius: 15px;
-        border: none;
-        background: #fff0f5; /* Ніжно-рожевий під тон випічки */
-        transition: transform 0.2s;
-        border-bottom: 4px solid #ff69b4;
-    }
-
-        .ingredient-card:hover {
-            transform: scale(1.03);
-        }
-
-    .price-tag {
-        color: #d81b60;
-        font-weight: bold;
-        font-size: 1.2rem;
-    }
-
-    /* Для Chrome, Safari, Edge, Opera — прибираємо внутрішні стрілочки */
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-    /* Для Firefox — робимо поле схожим на звичайний текст */
-    input[type=number] {
-        -moz-appearance: textfield;
-    }
-
-    /* Додатково: забираємо синю рамку при натисканні, щоб не псувала вигляд */
-    input:focus {
-        outline: none;
-        box-shadow: none !important;
+        text-align: center;
+        min-width: 300px;
+        border: 4px solid #fbc02d;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
     }
 </style>
 
 <div class="container mt-4">
-    <h3 class="text-center mb-4" style="color: #ad1457; font-weight: bold;">🧁 Магазин інгредієнтів</h3>
+    <h3 class="text-center mb-4" style="color: #4e342e; font-weight: bold;">🛒 Ринок Інгредієнтів</h3>
 
-    <div class="row">
-        @foreach (var item in availableIngredients)
-        {
-            <div class="col-6 col-md-4 mb-4">
-                <div class="card ingredient-card shadow-sm h-100">
-                    <div class="card-body text-center d-flex flex-column justify-content-between">
-                        <h5 class="card-title" style="color: #4a148c;">@item.Name</h5>
-                        <div class="price-tag my-2">💰 @item.Price</div>
-
-                        <div class="d-flex justify-content-center align-items-center mb-3">
-                            @* Кнопка Мінус - звичайний текст *@
-                            <button class="btn btn-outline-secondary"
-                                    style="width: 40px; font-weight: bold; border-radius: 5px 0 0 5px;"
-                                    @onclick="() => { if (item.QuantityToBuy > 1) item.QuantityToBuy--; }">
-                                −
-                            </button>
-
-                            @* Поле введення *@
-                            <input type="number" class="form-control text-center"
-                                   style="width: 60px; border-radius: 0; border-left: none; border-right: none;"
-                                   @bind="item.QuantityToBuy" min="1">
-
-                            @* Кнопка Плюс - звичайний текст *@
-                            <button class="btn btn-outline-secondary"
-                                    style="width: 40px; font-weight: bold; border-radius: 0 5px 5px 0;"
-                                    @onclick="() => item.QuantityToBuy++">
-                                +
-                            </button>
-                        </div>
-
-                        <button class="btn btn-lg w-100"
-                                style="background-color: #ff4081; color: white; border-radius: 20px;"
-                                @onclick="() => BuyItem(item)">
-                            Купити
-                        </button>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    @if (!string.IsNullOrEmpty(lastMessage))
+    @if (showErrorMessage)
     {
-        <div class="fixed-top mt-5 pt-3 d-flex justify-content-center" style="pointer-events: none;">
-            <div class="alert alert-success shadow-lg" style="pointer-events: all; border-radius: 30px;">
-                @lastMessage
-            </div>
+        <div class="alert alert-danger text-center fw-bold shadow-sm">
+            ❌ Недостатньо монет для покупки!
         </div>
     }
+
+    <div class="row justify-content-center">
+        <div class="col-md-4 mb-3">
+            <div class="card p-3 shadow-sm text-center" style="border-radius: 15px; border: 2px dashed #8d6e63;">
+                <h4 style="color: #5d4037;">🌾 Борошно</h4>
+                <p class="fs-5 mb-3">Ціна: <strong>10 💰</strong></p>
+
+                <button class="btn btn-warning fw-bold w-100"
+                        disabled="@isDelivering"
+                        @onclick="@(() => BuyItem(ProductType.Flour, 10, 5, "Борошно"))">
+                    Купити (Доставка: 5 сек)
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
+@if (isDelivering)
+{
+    <div class="delivery-overlay">
+        <div class="delivery-modal">
+            <h2 class="mb-3">🚚 Доставка...</h2>
+            <h4 style="color: #5d4037;">Вантаж: @deliveryItemName</h4>
+
+            <div class="display-4 fw-bold text-warning my-3">
+                @deliverySecondsRemaining сек
+            </div>
+
+            <div class="progress mt-3" style="height: 25px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                     role="progressbar"
+                     style="width: 100%">
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    private string lastMessage = "";
-    private int secondsRemaining = 0;
-    private Timer? deliveryTimer;
+    // Змінні для керування доставкою
+    private bool isDelivering = false;
+    private int deliverySecondsRemaining = 0;
+    private string deliveryItemName = "";
 
-    private List<Ingredient> availableIngredients = new()
+    // Змінна для помилки
+    private bool showErrorMessage = false;
+    private bool isDisposed = false;
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+
+    public void Dispose()
     {
-        new Ingredient { Name = "Борошно", Price = 10 },
-        new Ingredient { Name = "Цукор", Price = 15 },
-        new Ingredient { Name = "Шоколад", Price = 50 }
-    };
-
-    private void BuyItem(Ingredient item)
-    {
-        if (secondsRemaining > 0) return; // Не даємо купити нове, поки йде доставка
-
-        secondsRemaining = 10; // Ставимо 10 секунд на доставку
-        lastMessage = $"Замовлення на {item.Name} прийнято! Доставка через: {secondsRemaining} сек.";
-
-        // Налаштовуємо таймер
-        deliveryTimer = new Timer(1000); // Спрацьовує кожну 1 секунду
-        deliveryTimer.Elapsed += OnTimerElapsed;
-        deliveryTimer.AutoReset = true;
-        deliveryTimer.Enabled = true;
+        isDisposed = true;
+        State.OnChange -= StateHasChanged;
     }
 
-    private async void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    private async Task BuyItem(ProductType type, int price, int deliveryTime, string itemName)
     {
-        if (secondsRemaining > 0)
+        // 1. Пробуємо списати гроші
+        bool success = State.SpendGold(price);
+
+        if (success)
         {
-            secondsRemaining--;
-            lastMessage = $"Доставка... Залишилось: {secondsRemaining} сек.";
+            // Ховаємо помилку, якщо вона була
+            showErrorMessage = false;
+
+            // 2. Запускаємо візуал доставки
+            isDelivering = true;
+            deliveryItemName = itemName;
+            deliverySecondsRemaining = deliveryTime;
+            StateHasChanged();
+
+            // 3. Таймер (Цикл, який віднімає по 1 секунді)
+            while (deliverySecondsRemaining > 0)
+            {
+                await Task.Delay(1000); // Чекаємо 1 секунду
+                deliverySecondsRemaining--;
+
+                // Перевіряємо, чи гравець не пішов зі сторінки, щоб не було помилок
+                if (!isDisposed)
+                {
+                    StateHasChanged();
+                }
+            }
+
+            // 4. Доставка завершена! Додаємо товар на склад
+            State.AddToInventory(type, 1);
+            isDelivering = false;
+
+            if (!isDisposed)
+            {
+                StateHasChanged();
+            }
         }
         else
         {
-            deliveryTimer?.Stop();
-            lastMessage = "✅ Товар доставлено!";
-            await InvokeAsync(StateHasChanged);
+            // Якщо грошей не вистачило
+            showErrorMessage = true;
+            await Task.Delay(2000); // Показуємо помилку 2 секунди
+            showErrorMessage = false;
 
-            // Магія зникнення: чекаємо 3 секунди і очищуємо текст
-            await Task.Delay(3000);
-            lastMessage = "";
+            if (!isDisposed) StateHasChanged();
         }
-        await InvokeAsync(StateHasChanged);
-    }
-
-    public class Ingredient
-    {
-        public string Name { get; set; } = "";
-        public int Price { get; set; }
-        public int QuantityToBuy { get; set; } = 1; // Додали це
     }
 }

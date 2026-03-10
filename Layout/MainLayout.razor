@@ -1,45 +1,41 @@
 ﻿@inherits LayoutComponentBase
-
-<div class="page">
-    @* --- НАШ НОВИЙ HEADER --- *@
-    <header class="top-bar">
-        <div class="user-info">
-            <span class="avatar">👩‍🍳</span>
-            <span class="username">Моя Кондитерська</span>
-        </div>
-
-        <div class="stats">
-            <div class="stat-item gold">
-                <span>💰 1500</span>
-            </div>
-            <div class="stat-item xp">
-                <span>⭐ Рівень 1</span>
-            </div>
-        </div>
-    </header>
-
-    <main class="main-content">
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-
-    <NavMenu />
-</div>
+@implements IDisposable
+@using SweetBakeryQuest.Services
+@inject GameState State
 
 <div class="page">
     <div class="sidebar">
         <NavMenu />
     </div>
 
-<div class="page">
-    <main class="main-content">
-        <article class="content px-4">
+    <main>
+        <div class="top-row px-4 d-flex justify-content-end align-items-center" style="background-color: #f8f9fa; border-bottom: 1px solid #d6d5d5;">
+
+            <span class="me-4" style="font-size: 1.1rem; font-weight: bold; color: #5d4037;">
+                🪙 @State.Gold монет
+            </span>
+
+            <span style="font-size: 1.1rem; font-weight: bold; color: #f57f17;">
+                🌟 @State.Reputation репутації
+            </span>
+
+        </div>
+
+        <article class="content px-4 mt-3">
             @Body
         </article>
     </main>
-
-    <NavMenu /> @* Наша нова нижня панель *@
-</div>
 </div>
 
+@code {
+    // Наш улюблений патерн Observer для миттєвого оновлення шапки
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}
