@@ -5,7 +5,6 @@
 @inject GameState State
 
 <style>
-    /* Стилі для спливаючого вікна доставки (на весь екран) */
     .delivery-overlay {
         position: fixed;
         top: 0;
@@ -37,110 +36,200 @@
     @if (showErrorMessage)
     {
         <div class="alert alert-danger text-center fw-bold shadow-sm">
-            ❌ Недостатньо монет для покупки!
+            ❌ Недостатньо монет для оплати всього кошика!
         </div>
     }
 
-    <div class="row justify-content-center">
-        <div class="col-md-4 mb-3">
-            <div class="card p-3 shadow-sm text-center" style="border-radius: 15px; border: 2px dashed #8d6e63;">
-                <h4 style="color: #5d4037;">🌾 Борошно</h4>
-                <p class="fs-5 mb-3">Ціна: <strong>10 💰</strong></p>
+    <div class="row">
+        <div class="@(cart.Count > 0 ? "col-md-8" : "col-md-12")" style="transition: all 0.3s ease-in-out;">
+            <div class="row justify-content-center">
+                @foreach (var item in AvailableProducts)
+                {
+                    @if (State.Reputation >= item.RequiredReputation)
+                    {
+                        <div class="col-md-4 col-sm-6 mb-3">
+                            <div class="card p-3 shadow-sm text-center h-100" style="border-radius: 15px; border: 2px dashed #8d6e63; background-color: #fdf8e4;">
+                                <div class="display-4 mb-2">@item.Icon</div>
+                                <h5 style="color: #5d4037; font-weight: bold;">@item.Name</h5>
+                                <p class="fs-6 mb-3">Ціна: <strong>@item.Price 💰</strong></p>
 
-                <button class="btn btn-warning fw-bold w-100"
-                        disabled="@isDelivering"
-                        @onclick="@(() => BuyItem(ProductType.Flour, 10, 5, "Борошно"))">
-                    Купити (Доставка: 5 сек)
-                </button>
+                                <button class="btn btn-outline-success fw-bold w-100 mt-auto"
+                                        disabled="@isDelivering"
+                                        @onclick="@(() => AddToCart(item.Type))">
+                                    + В кошик
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
+
+        @if (cart.Count > 0)
+        {
+            <div class="col-md-4">
+                <div class="card p-3 shadow" style="border-radius: 15px; border: 2px solid #fbc02d; background-color: #fffde7;">
+                    <h4 class="text-center mb-3" style="color: #f57f17; font-weight: bold;">🛒 Ваш Кошик</h4>
+
+                    <ul class="list-group list-group-flush mb-3" style="background: transparent;">
+                        @foreach (var cartItem in cart)
+                        {
+                            var product = AvailableProducts.First(p => p.Type == cartItem.Key);
+                            <li class="list-group-item d-flex justify-content-between align-items-center" style="background: transparent; border-bottom-color: #ffe082;">
+                                <span>@product.Icon @product.Name</span>
+
+                                <div>
+                                    <button class="btn btn-sm btn-danger" @onclick="@(() => RemoveFromCart(product.Type))">-</button>
+                                    <span class="mx-2 fw-bold">@cartItem.Value</span>
+                                    <button class="btn btn-sm btn-success" @onclick="@(() => AddToCart(product.Type))">+</button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+
+                    <hr />
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Всього товарів:</span>
+                        <strong>@TotalCartItems шт.</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2 text-danger">
+                        <span>До оплати:</span>
+                        <strong>@TotalCartPrice 💰</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 text-primary">
+                        <span>Час доставки:</span>
+                        <strong>@TotalDeliveryTime сек ⏱️</strong>
+                    </div>
+
+                    <button class="btn btn-warning fw-bold w-100 fs-5"
+                            disabled="@isDelivering"
+                            @onclick="Checkout">
+                        Замовити доставку 🚚
+                    </button>
+
+                    <button class="btn btn-link text-muted w-100 mt-2"
+                            disabled="@isDelivering"
+                            @onclick="ClearCart">
+                        Очистити кошик
+                    </button>
+                </div>
+            </div>
+        }
     </div>
-</div>
+        </div>
+
 
 @if (isDelivering)
 {
     <div class="delivery-overlay">
         <div class="delivery-modal">
-            <h2 class="mb-3">🚚 Доставка...</h2>
-            <h4 style="color: #5d4037;">Вантаж: @deliveryItemName</h4>
-
-            <div class="display-4 fw-bold text-warning my-3">
-                @deliverySecondsRemaining сек
-            </div>
-
+            <h2 class="mb-3">🚚 Доставка опту...</h2>
+            <h4 style="color: #5d4037;">Товарів у кузові: @TotalCartItems шт.</h4>
+            <div class="display-4 fw-bold text-warning my-3">@deliverySecondsRemaining сек</div>
             <div class="progress mt-3" style="height: 25px;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
-                     role="progressbar"
-                     style="width: 100%">
-                </div>
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 100%"></div>
             </div>
         </div>
     </div>
 }
 
 @code {
-    // Змінні для керування доставкою
     private bool isDelivering = false;
     private int deliverySecondsRemaining = 0;
-    private string deliveryItemName = "";
-
-    // Змінна для помилки
     private bool showErrorMessage = false;
     private bool isDisposed = false;
 
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    // Словник для зберігання кошика: Який товар -> Скільки штук
+    private Dictionary<ProductType, int> cart = new();
 
-    public void Dispose()
+    // Наш каталог товарів (прибрали індивідуальний час доставки, бо тепер вона оптова)
+    private List<ProductCatalogItem> AvailableProducts = new()
     {
-        isDisposed = true;
-        State.OnChange -= StateHasChanged;
+        new ProductCatalogItem { Type = ProductType.Flour, Name = "Борошно", Icon = "🌾", Price = 10, RequiredReputation = 0 },
+        new ProductCatalogItem { Type = ProductType.Sugar, Name = "Цукор", Icon = "🧊", Price = 15, RequiredReputation = 0 },
+        new ProductCatalogItem { Type = ProductType.Eggs, Name = "Яйця", Icon = "🥚", Price = 25, RequiredReputation = 50 },
+        new ProductCatalogItem { Type = ProductType.Milk, Name = "Молоко", Icon = "🥛", Price = 30, RequiredReputation = 50 }
+    };
+
+    public class ProductCatalogItem
+    {
+        public ProductType Type { get; set; }
+        public string Name { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public int Price { get; set; }
+        public int RequiredReputation { get; set; }
     }
 
-    private async Task BuyItem(ProductType type, int price, int deliveryTime, string itemName)
+    // --- МАГІЯ LINQ ДЛЯ ПІДРАХУНКІВ ---
+    // Рахує загальну кількість предметів у кошику
+    private int TotalCartItems => cart.Values.Sum();
+
+    // Шукає ціну кожного товару в каталозі і множить на кількість у кошику
+    private int TotalCartPrice => cart.Sum(c => c.Value * AvailableProducts.First(p => p.Type == c.Key).Price);
+
+    // Базова доставка 2 сек + 1 сек за кожну одиницю товару
+    private int TotalDeliveryTime => TotalCartItems > 0 ? 2 + TotalCartItems : 0;
+
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() { isDisposed = true; State.OnChange -= StateHasChanged; }
+
+    // Додати товар у кошик
+    private void AddToCart(ProductType type)
     {
-        // 1. Пробуємо списати гроші
-        bool success = State.SpendGold(price);
+        if (cart.ContainsKey(type)) cart[type]++;
+        else cart[type] = 1;
+    }
 
-        if (success)
+    // Відняти товар з кошика
+    private void RemoveFromCart(ProductType type)
+    {
+        if (cart.ContainsKey(type))
         {
-            // Ховаємо помилку, якщо вона була
-            showErrorMessage = false;
+            cart[type]--;
+            if (cart[type] <= 0) cart.Remove(type);
+        }
+    }
 
-            // 2. Запускаємо візуал доставки
+    private void ClearCart() => cart.Clear();
+
+    // ПРОЦЕС КУПІВЛІ (ОФОРМЛЕННЯ ЗАМОВЛЕННЯ)
+    private async Task Checkout()
+    {
+        if (cart.Count == 0) return;
+
+        // Перевіряємо, чи вистачає грошей на ВЕСЬ кошик, і одразу списуємо
+        if (State.SpendGold(TotalCartPrice))
+        {
+            showErrorMessage = false;
             isDelivering = true;
-            deliveryItemName = itemName;
-            deliverySecondsRemaining = deliveryTime;
+            deliverySecondsRemaining = TotalDeliveryTime; // Ставимо оптовий час
             StateHasChanged();
 
-            // 3. Таймер (Цикл, який віднімає по 1 секунді)
+            // Крутимо таймер
             while (deliverySecondsRemaining > 0)
             {
-                await Task.Delay(1000); // Чекаємо 1 секунду
+                await Task.Delay(1000);
                 deliverySecondsRemaining--;
-
-                // Перевіряємо, чи гравець не пішов зі сторінки, щоб не було помилок
-                if (!isDisposed)
-                {
-                    StateHasChanged();
-                }
+                if (!isDisposed) StateHasChanged();
             }
 
-            // 4. Доставка завершена! Додаємо товар на склад
-            State.AddToInventory(type, 1);
+            // Тільки після приїзду вантажівки додаємо ВСЕ в інвентар
+            foreach (var item in cart)
+            {
+                State.AddToInventory(item.Key, item.Value);
+            }
+
+            ClearCart(); // Очищаємо кошик після успішної доставки
             isDelivering = false;
 
-            if (!isDisposed)
-            {
-                StateHasChanged();
-            }
+            if (!isDisposed) StateHasChanged();
         }
         else
         {
-            // Якщо грошей не вистачило
             showErrorMessage = true;
-            await Task.Delay(2000); // Показуємо помилку 2 секунди
+            await Task.Delay(2000);
             showErrorMessage = false;
-
             if (!isDisposed) StateHasChanged();
         }
     }
