@@ -7,6 +7,12 @@
         Flour,
         Sugar,
         Vanilla,
-        Cocoa
+        Cocoa,
+
+        Cookie,    // Печиво
+        Bread,     // Хліб
+        Pie,       // Пиріжок
+        Cake,      // Торт
+        Croissant
     }
 }

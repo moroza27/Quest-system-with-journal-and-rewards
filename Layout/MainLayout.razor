@@ -9,26 +9,94 @@
     </div>
 
     <main>
-        <div class="top-row px-4 d-flex justify-content-end align-items-center" style="background-color: #f8f9fa; border-bottom: 1px solid #d6d5d5;">
+        <div class="top-row shadow-sm d-flex justify-content-between align-items-center px-4 py-2"
+             style="background-color: #fffde7; border-bottom: 3px solid #fbc02d; position: sticky; top: 0; z-index: 1000;">
 
-            <span class="me-4" style="font-size: 1.1rem; font-weight: bold; color: #5d4037;">
-                🪙 @State.Gold монет
-            </span>
+            <div class="d-flex align-items-center">
+                <span class="fs-4 me-2">🏪</span>
+                <h4 class="mb-0 fw-bold" style="color: #4e342e; white-space: nowrap;">@State.BakeryName</h4>
+            </div>
 
-            <span style="font-size: 1.1rem; font-weight: bold; color: #f57f17;">
-                🌟 @State.Reputation репутації
-            </span>
+            <div class="d-flex align-items-center mx-3" style="min-width: 250px; max-width: 400px; width: 100%;">
+                <div class="me-3 text-end" style="min-width: 80px;">
+                    <span class="fw-bold fs-5" style="color: #f57f17;">Рівень @State.CurrentLevel</span>
+                    <div class="text-muted" style="font-size: 0.8rem; margin-top: -5px;">
+                        @State.CurrentXP / @State.XpForNextLevel XP
+                    </div>
+                </div>
 
+                <div class="progress flex-grow-1" style="height: 20px; border-radius: 10px; background-color: #e0e0e0; border: 1px solid #ccc;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                         role="progressbar"
+                         style="width: @(State.LevelProgressPercentage)%; transition: width 0.5s ease-in-out;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center">
+                <span class="fs-4 me-2">🪙</span>
+                <h4 class="mb-0 fw-bold text-success" style="white-space: nowrap;">@State.Gold монет</h4>
+            </div>
         </div>
-
-        <article class="content px-4 mt-3">
+        <article class="content px-4" style="padding-bottom: 100px;">
             @Body
         </article>
     </main>
 </div>
+@if (State.CallState != PhoneCallState.None && State.IncomingCall != null)
+{
+    <div class="modal-backdrop fade show" style="opacity: 0.6; z-index: 1040;"></div>
+
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1050; background: rgba(0,0,0,0.2);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-warning shadow-lg" style="border-width: 3px; border-radius: 15px;">
+
+                @if (State.CallState == PhoneCallState.Ringing)
+                {
+                    <div class="modal-body text-center p-5">
+                        <h1 class="mb-3" style="font-size: 4rem; animation: pulse 1s infinite;">📱</h1>
+                        <h4 class="fw-bold mb-4">Вхідний дзвінок...</h4>
+                        <div class="d-flex justify-content-center gap-3">
+                            <button class="btn btn-success fw-bold px-4 py-2 fs-5" @onclick="State.AnswerPhone">📞 Відповісти</button>
+                            <button class="btn btn-danger fw-bold px-4 py-2 fs-5" @onclick="State.DeclineCallOrder">❌ Скинути</button>
+                        </div>
+                    </div>
+                }
+                else if (State.CallState == PhoneCallState.Talking)
+                {
+                    <div class="modal-body p-4">
+                        <h5 class="modal-title fw-bold mb-3 d-flex align-items-center">
+                            <span class="fs-3 me-2">🗣️</span> Клієнт на лінії:
+                        </h5>
+
+                        <div class="bg-light p-3 rounded mb-3 border">
+                            <p class="mb-2 fst-italic">"Алло! Це пекарня '@State.BakeryName'? Мені терміново потрібно <strong>@State.IncomingCall.Title</strong>!"</p>
+
+                            <hr />
+                            <p class="mb-1 fw-bold">Що потрібно спекти:</p>
+                            <ul class="list-unstyled mb-3 ps-2 border-start border-warning border-3">
+                                @foreach (var req in State.IncomingCall.RequiredIngredients)
+                                {
+                                    <li>🔸 @req.Key: <b>@req.Value</b> шт.</li>
+                                }
+                            </ul>
+
+                            <p class="mb-1 fw-bold text-success">💰 Нагорода: 🪙 @State.IncomingCall.RewardGold | ⭐ @State.IncomingCall.RewardReputation</p>
+                            <p class="mb-0 fw-bold text-danger">⏱ Час на виконання: @State.IncomingCall.TimeLeftSeconds сек.</p>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button class="btn btn-outline-danger fw-bold px-4" @onclick="State.DeclineCallOrder">Вибачте, не встигну</button>
+                            <button class="btn btn-warning text-dark fw-bold px-4" @onclick="State.AcceptCallOrder">Беру в роботу!</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    // Наш улюблений патерн Observer для миттєвого оновлення шапки
     protected override void OnInitialized()
     {
         State.OnChange += StateHasChanged;

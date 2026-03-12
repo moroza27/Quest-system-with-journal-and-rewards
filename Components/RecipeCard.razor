@@ -1,0 +1,63 @@
+﻿@using SweetBakeryQuest.Models
+@using SweetBakeryQuest.Services
+@inject GameState State
+
+<div class="card h-100 shadow-sm @CardClass" style="border-radius: 15px; overflow: hidden;">
+    @if (IsLocked)
+    {
+        <div class="locked-overlay">
+            <h4 class="text-secondary fw-bold mb-1">🔒 Заблоковано</h4>
+            <span class="badge bg-secondary">Потрібен @RecipeItem.RequiredLevel рівень 🌟</span>
+        </div>
+    }
+
+    <div class="card-body @(IsLocked ? "blur-content" : "")">
+        <div class="text-center mb-3">
+            <h4 class="card-title mb-0" style="color: @(IsLocked ? "#757575" : "#f57f17"); font-weight: bold;">
+                @RecipeItem.Icon @RecipeItem.Name
+            </h4>
+        </div>
+        <hr />
+
+        <p class="text-muted mb-2"><strong>На 1 порцію потрібно:</strong></p>
+        <ul class="list-group list-group-flush" style="background: transparent;">
+            @foreach (var ing in RecipeItem.Ingredients)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0" style="background: transparent; border-color: #ffe082;">
+                    <span>@GetIcon(ing.Key) @TranslateProduct(ing.Key)</span>
+                    <strong class="@(IsLocked ? "text-secondary" : "text-danger")">x @ing.Value</strong>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public Recipe RecipeItem { get; set; } = default!;
+
+    // 🔥 НОВЕ: Блокуємо, якщо рівень гравця менший за рівень рецепта
+    private bool IsLocked => State.CurrentLevel < RecipeItem.RequiredLevel;
+
+    private string CardClass => IsLocked ? "locked-card" : "active-card";
+
+    private string GetIcon(ProductType type) => type switch
+    {
+        ProductType.Flour => "🌾",
+        ProductType.Sugar => "🧊",
+        ProductType.Eggs => "🥚",
+        ProductType.Milk => "🥛",
+        ProductType.Cocoa => "🍫",
+        _ => "📦"
+    };
+
+    private string TranslateProduct(ProductType type) => type switch
+    {
+        ProductType.Flour => "Борошно",
+        ProductType.Sugar => "Цукор",
+        ProductType.Eggs => "Яйця",
+        ProductType.Milk => "Молоко",
+        ProductType.Cocoa => "Какао",
+        _ => type.ToString()
+    };
+}

@@ -1,0 +1,138 @@
+﻿@page "/"
+@using SweetBakeryQuest.Models
+@using SweetBakeryQuest.Services
+@inject GameState State
+@implements IDisposable
+
+@if (State == null)
+{
+    @* Стан завантаження, якщо сервіс ще не доступний *@
+    <div class="d-flex justify-content-center align-items-center" style="height: 100vh; background-color: #fdf8e4;">
+        <div class="text-center">
+            <div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;"></div>
+            <h4 class="mt-3" style="color: #5d4037;">Завантаження інгредієнтів...</h4>
+        </div>
+    </div>
+}
+else if (!State.IsGameStarted)
+{
+    @* --- ВІТАЛЬНЕ ВІКНО --- *@
+    <div class="welcome-overlay">
+        <div class="welcome-card shadow-lg text-center p-5">
+            <h1 class="display-4" style="color: #4e342e; font-weight: bold;">🥐 Sweet Bakery Quest</h1>
+            <p class="lead mb-4">Ваша пригода починається тут!</p>
+
+            <div class="form-group mb-4 text-start">
+                <label class="h5 mb-2 fw-bold" style="color: #5d4037;">Назва вашої пекарні:</label>
+                <input type="text" @bind="tempName" @bind:event="oninput"
+                       class="form-control form-control-lg text-center"
+                       placeholder="Наприклад: Золотий Круасан" maxlength="25" />
+                <small class="text-muted">Вигадайте щось смачненьке!</small>
+            </div>
+
+            <button class="btn btn-warning btn-lg px-5 fw-bold text-uppercase shadow"
+                    disabled="@(string.IsNullOrWhiteSpace(tempName))"
+                    @onclick="HandleStart">
+                Почати гру! ✨
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid fade-in">
+        @* Заголовок пекарні *@
+        <div class="row mb-4">
+            <div class="col-12 text-center py-3 bg-white shadow-sm rounded-bottom border-bottom border-warning">
+                <h2 class="display-6 fw-bold" style="color: #5d4037;">🏪 @State.BakeryName</h2>
+                <span class="badge bg-warning text-dark p-2">Рівень майстерності: @State.CurrentLevel</span>
+            </div>
+        </div>
+
+        <div class="row">
+            @* Ліва колонка: Дошка замовлень *@
+            <div class="col-lg-8 mb-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-brown text-white fw-bold">
+                        📋 Поточні замовлення
+                    </div>
+                    <div class="card-body bg-light">
+                        <QuestsPage /> @* Викликаємо твій компонент квестів *@
+                    </div>
+                </div>
+            </div>
+
+            @* Права колонка: Статистика та комора *@
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="fw-bold border-bottom pb-2">📦 Твій інвентар</h5>
+                        @* Тут можна викликати компонент інвентарю, наприклад <InventoryComponent /> *@
+                        <p class="small text-muted">Перегляньте вкладку "Рюкзак" для деталей.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .welcome-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #fdf8e4;
+        background-image: radial-gradient(#fbc02d 0.5px, #fdf8e4 0.5px);
+        background-size: 20px 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    }
+
+    .welcome-card {
+        background: white;
+        border: 6px solid #fbc02d;
+        border-radius: 40px;
+        max-width: 550px;
+        width: 90%;
+    }
+
+    .game-container {
+        min-height: 80vh;
+        background: #fdf8e4; /* Теплий колір паперу */
+        border: 10px solid #8d6e63; /* Коричнева рамка, як у дошки */
+        border-radius: 15px;
+        padding: 20px;
+    }
+</style>
+
+@code {
+    private string tempName = "";
+
+    protected override void OnInitialized()
+    {
+        if (State != null)
+        {
+            State.OnChange += StateHasChanged;
+        }
+    }
+
+    private void HandleStart()
+    {
+        if (!string.IsNullOrWhiteSpace(tempName) && State != null)
+        {
+            State.StartGame(tempName);
+        }
+    }
+
+    public void Dispose()
+    {
+        if (State != null)
+        {
+            State.OnChange -= StateHasChanged;
+        }
+    }
+}

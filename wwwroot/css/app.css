@@ -101,3 +101,28 @@ a, .btn-link {
 code {
     color: #c02d76;
 }
+
+.welcome-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: url('images/bakery-bg.jpg') center/cover no-repeat, #fdf8e4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.welcome-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 8px solid #fbc02d;
+    border-radius: 30px;
+    max-width: 500px;
+    backdrop-filter: blur(5px);
+}
+
+    .welcome-card h1 {
+        font-family: 'Comic Sans MS', cursive, sans-serif; /* Або будь-який грайливий шрифт */
+    }

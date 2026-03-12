@@ -1,87 +1,136 @@
 ﻿@page "/quests"
-@implements IDisposable
 @using SweetBakeryQuest.Models
 @using SweetBakeryQuest.Services
+@using SweetBakeryQuest.States
 @inject GameState State
+@implements IDisposable
 
-<style>
-    .quest-card {
-        background: #fff9c4;
-        border-left: 8px solid #fbc02d;
-        border-radius: 10px;
-        transition: 0.3s;
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">📋 Дошка замовлень</h3>
+</div>
+
+<div class="row">
+    @if (State.AvailableQuests.Count == 0)
+    {
+        <p class="text-muted">Немає активних замовлень.</p>
     }
-
-        .quest-card:hover {
-            transform: translateX(10px);
-            background: #fffde7;
-        }
-
-    .reward-badge {
-        background: #ffd54f;
-        color: #7f6d00;
-        font-weight: bold;
-        border-radius: 15px;
-        padding: 5px 15px;
-        display: inline-block;
-    }
-</style>
-
-<div class="container mt-4">
-    <h3 class="text-center mb-4" style="color: #4e342e; font-weight: bold;">📜 Книга Рецептів (Квести)</h3>
-    <p class="text-center">Репутація: 🌟 @State.Reputation</p>
-
-    <div class="row">
+    else
+    {
         @foreach (var quest in State.AvailableQuests)
         {
-            bool canComplete = State.CanCompleteQuest(quest);
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 @GetCardStyle(quest)">
+                    <div class="card-body d-flex flex-column">
 
-            <div class="col-12 mb-3">
-                <div class="card quest-card shadow-sm">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-1" style="color: #5d4037;">@quest.Title</h5>
-                            <span class="badge @(canComplete ? "bg-success" : "bg-warning text-dark") mb-2">
-                                @(canComplete ? "Можна готувати!" : "Бракує інгредієнтів")
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title fw-bold mb-0">@quest.Title</h5>
+                            <span class="badge @GetStatusBadgeClass(quest)">
+                                @quest.CurrentState.StateName
                             </span>
-
-                            <div style="font-size: 0.9em;">
-                                <strong>Потрібно:</strong>
-                                @foreach (var req in quest.RequiredIngredients)
-                                {
-                                    int currentAmount = State.Inventory.ContainsKey(req.Key) ? State.Inventory[req.Key] : 0;
-                                    bool hasEnough = currentAmount >= req.Value;
-                                    <span class="me-2" style="color: @(hasEnough ? "green" : "red")">
-                                        @req.Key (@currentAmount/@req.Value)
-                                    </span>
-                                }
-                            </div>
                         </div>
 
-                        <div class="text-end">
-                            <div class="reward-badge mb-2">💰 @quest.RewardGold | 🌟 @quest.RewardReputation</div>
-                            <br />
-                            <button class="btn btn-sm @(canComplete ? "btn-success" : "btn-outline-dark")"
-                                    disabled="@(!canComplete)"
+                        @if (quest.IsTimed)
+                        {
+                            // Показуємо таймер, якщо квест ще не провалений
+                            if (quest.CurrentState is not FailedState)
+                            {
+                                <div class="alert @GetTimerClass(quest.TimeLeftSeconds) py-1 px-2 mb-3 text-center fw-bold shadow-sm">
+                                    ⏱ Залишилось: @quest.TimeLeftSeconds сек.
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-secondary py-1 px-2 mb-3 text-center fw-bold">
+                                    ❌ Час вичерпано
+                                </div>
+                            }
+                        }
+
+                        <p class="card-text text-muted small mb-3">@quest.Description</p>
+
+                        <h6 class="fw-bold fs-6">Потрібно:</h6>
+                        <ul class="list-unstyled mb-3 flex-grow-1">
+                            @foreach (var req in quest.RequiredIngredients)
+                            {
+                                // ПРИБРАЛИ ПІДКАЗКИ ТА КОЛЬОРИ! Тепер гравець має думати сам.
+                                <li>🔸 @req.Key: <b>@req.Value</b> шт.</li>
+                            }
+                        </ul>
+
+                        <div class="p-2 mb-3 rounded" style="background-color: #fffde7; border: 1px dashed #fbc02d;">
+                            <span class="fw-bold">Нагорода:</span><br />
+                            <span>🪙 @quest.RewardGold монет</span> |
+                            <span>⭐ @quest.RewardReputation XP</span>
+                        </div>
+
+                        @if (quest.CurrentState is AvailableState || quest.CurrentState is InProgressState)
+                        {
+                            <button class="btn btn-success w-100 fw-bold mt-auto"
+                                    disabled="@(!State.CanCompleteQuest(quest))"
                                     @onclick="() => State.CompleteQuest(quest)">
-                                Виконати
+                                📦 Віддати замовлення
                             </button>
-                        </div>
+                        }
+                        else if (quest.CurrentState is FailedState)
+                        {
+                            <button class="btn btn-outline-danger w-100 fw-bold mt-auto"
+                                    @onclick="() => DismissFailedQuest(quest)">
+                                🗑 Прибрати провалене
+                            </button>
+                        }
                     </div>
                 </div>
             </div>
         }
-
-        @if (!State.AvailableQuests.Any())
-        {
-            <div class="text-center mt-4">
-                <h5 style="color: #5d4037;">Усі замовлення виконані! Ви молодець 🍰</h5>
-            </div>
-        }
-    </div>
+    }
 </div>
 
 @code {
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
-    public void Dispose() => State.OnChange -= StateHasChanged;
+    private System.Threading.Timer? _uiTimer;
+
+    protected override void OnInitialized()
+    {
+        // Підписуємося через спеціальний метод
+        State.OnChange += HandleStateChanged;
+    }
+
+    // Цей метод змушує сторінку перемалюватися, навіть якщо сигнал прийшов від таймера
+    private async void HandleStateChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= HandleStateChanged;
+    }
+    
+
+    private void DismissFailedQuest(Quest quest)
+    {
+        State.AvailableQuests.Remove(quest);
+        StateHasChanged();
+    }
+
+    private string GetCardStyle(Quest quest)
+    {
+        if (quest.CurrentState is FailedState) return "border-danger bg-light opacity-75";
+        if (quest.IsTimed) return "border-warning shadow";
+        return "border-0 shadow-sm";
+    }
+
+    private string GetStatusBadgeClass(Quest quest)
+    {
+        if (quest.CurrentState is AvailableState) return "bg-primary";
+        if (quest.CurrentState is InProgressState) return "bg-warning text-dark";
+        if (quest.CurrentState is FailedState) return "bg-danger";
+        return "bg-secondary";
+    }
+
+    private string GetTimerClass(int secondsLeft)
+    {
+        if (secondsLeft <= 10) return "alert-danger";
+        if (secondsLeft <= 30) return "alert-warning";
+        return "alert-info";
+    }
 }
