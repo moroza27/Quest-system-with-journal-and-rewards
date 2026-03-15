@@ -3,6 +3,7 @@
 @using SweetBakeryQuest.Services
 @inject GameState State
 
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -18,11 +19,19 @@
             </div>
 
             <div class="d-flex align-items-center mx-3" style="min-width: 250px; max-width: 400px; width: 100%;">
-                <div class="me-3 text-end" style="min-width: 80px;">
+                @* Додали клас stat-container сюди для анімації XP *@
+                <div class="stat-container me-3 text-end" style="min-width: 80px;">
                     <span class="fw-bold fs-5" style="color: #f57f17;">Рівень @State.CurrentLevel</span>
                     <div class="text-muted" style="font-size: 0.8rem; margin-top: -5px;">
-                        @State.CurrentXP / @State.XpForNextLevel XP
+                        @State.XpIntoCurrentLevel / @State.XpNeededForThisLevel XP
                     </div>
+                    @* Анімація досвіду тепер тут! *@
+                    @foreach (var anim in _animations.Where(a => a.Type == "XP"))
+                    {
+                        <span class="floating-number floating-xp text-primary" @key="anim.Id">
+                            +@anim.Amount XP
+                        </span>
+                    }
                 </div>
 
                 <div class="progress flex-grow-1" style="height: 20px; border-radius: 10px; background-color: #e0e0e0; border: 1px solid #ccc;">
@@ -33,16 +42,45 @@
                 </div>
             </div>
 
-            <div class="d-flex align-items-center">
-                <span class="fs-4 me-2">🪙</span>
-                <h4 class="mb-0 fw-bold text-success" style="white-space: nowrap;">@State.Gold монет</h4>
+            <div class="d-flex justify-content-end align-items-center gap-4">
+
+                @* --- ЗАДОВОЛЕННЯ КЛІЄНТІВ --- *@
+                <div class="stat-container d-inline-flex align-items-center">
+                    <span class="fs-4 me-1">@State.SatisfactionEmoji</span>
+                    <span class="fw-bold @State.SatisfactionColorClass">
+                        @State.CustomerSatisfaction%
+                    </span>
+                    @foreach (var anim in _animations.Where(a => a.Type == "Satisfaction"))
+                    {
+                        <span class="floating-number @(anim.Amount > 0 ? "text-success" : "text-danger")" @key="anim.Id">
+                            @(anim.Amount > 0 ? "+" : "")@anim.Amount
+                        </span>
+                    }
+                </div>
+
+                @* --- МОНЕТИ --- *@
+                <div class="stat-container d-inline-flex align-items-center">
+                    <span class="fs-4 me-1">🪙</span>
+                    <span class="fw-bold text-success">@State.Gold монет</span>
+                    @foreach (var anim in _animations.Where(a => a.Type == "Gold"))
+                    {
+                        <span class="floating-number text-warning" @key="anim.Id">
+                            @(anim.Amount > 0 ? "+" : "")@anim.Amount
+                        </span>
+                    }
+                </div>
+
+                @* Блок "+XP" звідси повністю видалено! *@
             </div>
+
         </div>
+
         <article class="content px-4" style="padding-bottom: 100px;">
             @Body
         </article>
     </main>
 </div>
+
 @if (State.CallState != PhoneCallState.None && State.IncomingCall != null)
 {
     <div class="modal-backdrop fade show" style="opacity: 0.6; z-index: 1040;"></div>
@@ -97,13 +135,39 @@
 }
 
 @code {
+    private class FloatingAnim
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Type { get; set; } = "";
+        public int Amount { get; set; }
+    }
+
+    private List<FloatingAnim> _animations = new();
+
     protected override void OnInitialized()
     {
         State.OnChange += StateHasChanged;
+        State.OnAnimateValue += HandleAnimation;
+    }
+
+    private async void HandleAnimation(string type, int amount)
+    {
+        if (amount == 0) return;
+
+        var anim = new FloatingAnim { Type = type, Amount = amount };
+        _animations.Add(anim);
+
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(1500);
+        _animations.Remove(anim);
+
+        await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
         State.OnChange -= StateHasChanged;
+        State.OnAnimateValue -= HandleAnimation;
     }
 }

@@ -122,7 +122,61 @@ code {
     max-width: 500px;
     backdrop-filter: blur(5px);
 }
-
     .welcome-card h1 {
         font-family: 'Comic Sans MS', cursive, sans-serif; /* Або будь-який грайливий шрифт */
     }
+
+
+/* Робимо блоки відносними, щоб цифри летіли відносно них */
+.stat-container {
+    position: relative;
+}
+
+
+/* Анімація для Монет та Задоволення (з'являється під текстом, летить трохи вгору і зникає) */
+@keyframes floatUpUnderneath {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, 20px) scale(1);
+    }
+    /* Починає на 20px нижче блоку */
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -5px) scale(1.1);
+    }
+    /* Піднімається і розчиняється */
+}
+
+/* Анімація для XP (бо він притиснутий до правого краю) */
+@keyframes floatUpXp {
+    0% {
+        opacity: 1;
+        transform: translate(0, 20px) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(0, -5px) scale(1.1);
+    }
+}
+
+/* Загальні стилі для спливаючих цифр */
+.floating-number {
+    position: absolute;
+    top: 100%; /* Гарантовано розміщує цифру під контейнером */
+    left: 50%; /* Центрує по горизонталі під іконкою */
+    font-weight: bold;
+    font-size: 1.1rem;
+    pointer-events: none;
+    animation: floatUpUnderneath 1.5s ease-out forwards;
+    z-index: 1000;
+    white-space: nowrap;
+    text-shadow: 1px 1px 3px rgba(255, 255, 255, 1); /* Біла тінь, щоб краще читалося на будь-якому фоні */
+}
+
+/* Індивідуальне вирівнювання для Досвіду (XP) */
+.floating-xp {
+    left: auto;
+    right: 0;
+    animation: floatUpXp 1.5s ease-out forwards;
+}

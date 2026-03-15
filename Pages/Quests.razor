@@ -31,7 +31,6 @@
 
                         @if (quest.IsTimed)
                         {
-                            // Показуємо таймер, якщо квест ще не провалений
                             if (quest.CurrentState is not FailedState)
                             {
                                 <div class="alert @GetTimerClass(quest.TimeLeftSeconds) py-1 px-2 mb-3 text-center fw-bold shadow-sm">
@@ -52,7 +51,6 @@
                         <ul class="list-unstyled mb-3 flex-grow-1">
                             @foreach (var req in quest.RequiredIngredients)
                             {
-                                // ПРИБРАЛИ ПІДКАЗКИ ТА КОЛЬОРИ! Тепер гравець має думати сам.
                                 <li>🔸 @req.Key: <b>@req.Value</b> шт.</li>
                             }
                         </ul>
@@ -90,11 +88,9 @@
 
     protected override void OnInitialized()
     {
-        // Підписуємося через спеціальний метод
         State.OnChange += HandleStateChanged;
     }
 
-    // Цей метод змушує сторінку перемалюватися, навіть якщо сигнал прийшов від таймера
     private async void HandleStateChanged()
     {
         await InvokeAsync(StateHasChanged);

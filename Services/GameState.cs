@@ -19,7 +19,6 @@ namespace SweetBakeryQuest.Services
             BakeryName = name;
             IsGameStarted = true;
 
-            // 🔥 Тепер квести генеруються тільки ПІСЛЯ натискання кнопки "Грати"
             GenerateNewQuest();
             GenerateNewQuest();
             GenerateNewQuest();
@@ -30,9 +29,39 @@ namespace SweetBakeryQuest.Services
 
         public int Gold { get; private set; } = 100;
         public int CurrentXP { get; private set; } = 0;
+        public int CustomerSatisfaction { get; private set; } = 100;
+
+        public string SatisfactionEmoji => CustomerSatisfaction switch
+        {
+            >= 71 => "😊",
+            >= 45 => "😐",
+            _ => "😠"
+        };
+
+        public string SatisfactionColorClass => CustomerSatisfaction switch
+        {
+            >= 71 => "text-success",  // Зелений
+            >= 45 => "text-warning",  // Помаранчевий
+            _ => "text-danger"        // Червоний
+        };
+
+        public void ModifySatisfaction(int amount)
+        {
+            CustomerSatisfaction += amount;
+            if (CustomerSatisfaction > 100) CustomerSatisfaction = 100;
+            if (CustomerSatisfaction < 0) CustomerSatisfaction = 0;
+
+            OnAnimateValue?.Invoke("Satisfaction", amount);
+            NotifyStateChanged();
+        }
 
         public int CurrentLevel => CalculateLevel(CurrentXP);
         public int XpForNextLevel => CalculateXpForNextLevel(CurrentLevel);
+        // Досвід, здобутий саме на поточному рівні (скидається візуально)
+        public int XpIntoCurrentLevel => CurrentXP - CalculateXpForNextLevel(CurrentLevel - 1);
+
+        // Скільки ВБОГО треба здобути досвіду для проходження поточного рівня
+        public int XpNeededForThisLevel => XpForNextLevel - CalculateXpForNextLevel(CurrentLevel - 1);
 
         public double LevelProgressPercentage
         {
@@ -49,6 +78,7 @@ namespace SweetBakeryQuest.Services
         public Dictionary<ProductType, int> Inventory { get; private set; } = new();
         public List<Quest> AvailableQuests { get; private set; } = new();
         public event Action? OnChange;
+        public event Action<string, int>? OnAnimateValue;
 
         private readonly QuestFactory _questFactory;
         private System.Timers.Timer _gameTimer;
@@ -86,9 +116,11 @@ namespace SweetBakeryQuest.Services
                     }
                     else
                     {
-                        // Якщо час вийшов, квест провалено або видалено
                         quest.CurrentState.FailQuest(quest);
-                        AvailableQuests.Remove(quest); // Видаляємо з дошки, якщо час вийшов
+                        AvailableQuests.Remove(quest); 
+
+                        ModifySatisfaction(-5);
+
                         needsUpdate = true;
                     }
                 }
@@ -186,13 +218,28 @@ namespace SweetBakeryQuest.Services
             {
                 Gold += quest.RewardGold;
                 CurrentXP += quest.RewardReputation;
+
+                OnAnimateValue?.Invoke("Gold", quest.RewardGold);
+                OnAnimateValue?.Invoke("XP", quest.RewardReputation);
+
+                ModifySatisfaction(5); 
+
                 AvailableQuests.Remove(quest);
                 NotifyStateChanged();
             }
         }
 
-        public bool SpendGold(int amount) { if (Gold >= amount) { Gold -= amount; NotifyStateChanged(); return true; } return false; }
-
+        public bool SpendGold(int amount)
+        {
+            if (Gold >= amount)
+            {
+                Gold -= amount;
+                OnAnimateValue?.Invoke("Gold", -amount); 
+                NotifyStateChanged();
+                return true;
+            }
+            return false;
+        }
         public void AddToInventory(ProductType type, int amount)
         {
             if (Inventory.ContainsKey(type)) Inventory[type] += amount;
